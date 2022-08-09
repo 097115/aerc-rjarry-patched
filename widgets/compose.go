@@ -1697,11 +1697,22 @@ func newReviewMessage(composer *Composer, err error) *reviewMessage {
 		name := command[1]
 		strokes, _ := config.ParseKeyStrokes(cmd)
 		var inputs []string
-		for _, input := range bindings.GetReverseBindings(strokes) {
-			inputs = append(inputs, config.FormatKeyStrokes(input))
+		// force bindings for specific commands
+		switch cmd[:5] {
+		case ":send":
+			inputs = append(inputs, "y")
+		case ":abor":
+			inputs = append(inputs, "n")
+		default:
+			for _, input := range bindings.GetReverseBindings(strokes) {
+				inputs = append(inputs, config.FormatKeyStrokes(input))
+			}
 		}
-		actions = append(actions, fmt.Sprintf("  %-6s  %-40s  %s",
-			strings.Join(inputs, ", "), name, cmd))
+		// skip non-bound commands
+		if len(strings.Join(inputs[:], ", ")) > 0 {
+			actions = append(actions, fmt.Sprintf("  %-6s  %-40s  %s",
+				strings.Join(inputs[:], ", "), name, cmd))
+		}
 	}
 
 	spec := []ui.GridSpec{
