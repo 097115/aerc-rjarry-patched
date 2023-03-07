@@ -1,0 +1,50 @@
+name: CD
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  publish:
+    name: Deploying ${{ matrix.build_target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build_target: [linux64]
+        include:
+          - build_target: linux64
+            os: ubuntu-latest
+            artifact_suffix: linux-x86_64
+            target_arch: amd64
+            target_os: linux
+    env:
+      DESTDIR: ./${{ matrix.artifact_suffix }}
+    steps:
+      - name: Set up access
+        uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+      - name: Set up Linux deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install scdoc
+      - name: Build
+        run: GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} CGO_ENABLED=1 CGO_CFLAGS=${{ matrix.cflags }} CGO_LDFLAGS=${{ matrix.ldflags }} make
+      - name: Install
+        run: make install
+      - name: Package
+        shell: bash
+        run: |
+          ls -la
+          tar czvf aerc-${{ matrix.artifact_suffix }}.tar.gz ${{ matrix.artifact_suffix }}/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aerc-${{ matrix.artifact_suffix }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
