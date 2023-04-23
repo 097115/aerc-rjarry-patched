@@ -35,7 +35,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `signature-file` and `signature-cmd` if not already present.
 - All `aerc(1)` commands now interpret `aerc-templates(7)` markup.
 - running commands (like mailto: or mbox:) no longer prints a success message
-- The built-in `colorize` filter now emits OSC 8 to mark URLs and emails.
+- The built-in `colorize` filter now emits OSC 8 to mark URLs and emails. Set
+  `[general].enable-osc8 = true` in `aerc.conf` to enable it.
 
 ### Deprecated
 
