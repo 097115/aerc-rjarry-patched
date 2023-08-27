@@ -8,7 +8,6 @@ import (
 	"net/textproto"
 	"os"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -1605,7 +1604,6 @@ func newReviewMessage(composer *Composer, err error) *reviewMessage {
 		{":abort<enter>", "Abort (discard message, no confirmation)", ""},
 		{":choose -o d discard abort -o p postpone postpone<enter>", "Abort or postpone", ""},
 	}
-	knownCommands := len(reviewCommands)
 	var actions []string
 	for _, binding := range bindings.Bindings {
 		inputs := config.FormatKeyStrokes(binding.Input)
@@ -1627,11 +1625,6 @@ func newReviewMessage(composer *Composer, err error) *reviewMessage {
 			reviewCommands = append(reviewCommands, rcmd)
 		}
 	}
-	unknownCommands := reviewCommands[knownCommands:]
-	sort.Slice(unknownCommands, func(i, j int) bool {
-		return unknownCommands[i][2] < unknownCommands[j][2]
-	})
-
 	longest := 0
 	for _, rcmd := range reviewCommands {
 		if len(rcmd[2]) > longest {
