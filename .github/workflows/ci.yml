@@ -1,0 +1,75 @@
+name: CD
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  publish:
+    name: Deploying ${{ matrix.build_target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+#       build_target: [macos, linux32, linux64]
+        build_target: [linux64]
+        include:
+#         - build_target: macos
+#           os: macos-latest
+#           artifact_suffix: macos-x86_64
+#           target_os: darwin
+#           target_arch: amd64
+#           cflags: "-mmacosx-version-min=10.11"
+#           ldflags: "-mmacosx-version-min=10.11"
+#         - build_target: linux32
+#           os: ubuntu-latest
+#           artifact_suffix: linux-x86_32
+#           target_arch: 386
+#           target_os: linux
+          - build_target: linux64
+            os: ubuntu-latest
+            artifact_suffix: linux-x86_64
+            target_arch: amd64
+            target_os: linux
+    env:
+      DESTDIR: ./${{ matrix.artifact_suffix }}
+    steps:
+      - name: Set up access
+        uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+#     - name: Set up macOS deps
+#       if: matrix.os == 'macos-latest'
+#       run: brew install scdoc
+      - name: Set up Linux deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install scdoc
+#     - name: Set up Linux32 deps
+#       if: matrix.target_arch == '386'
+#       run: |
+#         sudo apt update
+#         sudo apt-get install gcc-multilib
+      - name: Build
+        run: GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} CGO_ENABLED=1 CGO_CFLAGS=${{ matrix.cflags }} CGO_LDFLAGS=${{ matrix.ldflags }} make
+      - name: Install
+        run: make install
+#       - name: Tag
+#         shell: bash
+#         run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
+#         id: extract_tag
+      - name: Package
+        shell: bash
+        run: |
+          ls -la
+          tar czvf aerc-${{ matrix.artifact_suffix }}.tar.gz ${{ matrix.artifact_suffix }}/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aerc-${{ matrix.artifact_suffix }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
