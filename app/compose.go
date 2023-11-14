@@ -9,7 +9,6 @@ import (
 	"net/textproto"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1686,62 +1685,35 @@ type reviewMessage struct {
 	grid     *ui.Grid
 }
 
+var reviewCommands = [][]string{
+	{":send<enter>", "Send"},
+	{":edit<enter>", "Edit"},
+	{":attach<space>", "Add attachment"},
+	{":detach<space>", "Remove attachment"},
+	{":postpone<enter>", "Postpone"},
+	{":preview<enter>", "Preview message"},
+	{":abort<enter>", "Abort (discard message, no confirmation)"},
+	{":choose -o d discard abort -o p postpone postpone<enter>", "Abort or postpone"},
+}
+
 func newReviewMessage(composer *Composer, err error) *reviewMessage {
 	bindings := config.Binds.ComposeReview.ForAccount(
 		composer.acctConfig.Name,
 	)
 	bindings = bindings.ForFolder(composer.SelectedDirectory())
 
-	reviewCommands := [][]string{
-		{":send<enter>", "Send", ""},
-		{":edit<enter>", "Edit", ""},
-		{":attach<space>", "Add attachment", ""},
-		{":detach<space>", "Remove attachment", ""},
-		{":postpone<enter>", "Postpone", ""},
-		{":preview<enter>", "Preview message", ""},
-		{":abort<enter>", "Abort (discard message, no confirmation)", ""},
-		{":choose -o d discard abort -o p postpone postpone<enter>", "Abort or postpone", ""},
-	}
 	var actions []string
-	for _, binding := range bindings.Bindings {
-		inputs := config.FormatKeyStrokes(binding.Input)
-		outputs := config.FormatKeyStrokes(binding.Output)
-		outputs = strings.ReplaceAll(outputs, "<space>", " ")
-		found := false
-		for i, rcmd := range reviewCommands {
-			if outputs == rcmd[0] {
-				found = true
-				if reviewCommands[i][2] == "" {
-					reviewCommands[i][2] = inputs
-				} else {
-					reviewCommands[i][2] += ", " + inputs
-				}
-				break
-			}
-		}
-		if !found {
-			rcmd := []string{outputs, "", inputs}
-			reviewCommands = append(reviewCommands, rcmd)
-		}
-	}
-	longest := 0
-	for _, rcmd := range reviewCommands {
-		if len(rcmd[2]) > longest {
-			longest = len(rcmd[2])
-		}
-	}
 
-	width := longest
-	if longest < 6 {
-		width = 6
-	}
-	widthstr := strconv.Itoa(width)
-
-	for _, rcmd := range reviewCommands {
-		if rcmd[2] != "" {
-			actions = append(actions, fmt.Sprintf("  %-"+widthstr+"s  %-40s  %s",
-				rcmd[2], rcmd[1], rcmd[0]))
+	for _, command := range reviewCommands {
+		cmd := command[0]
+		name := command[1]
+		strokes, _ := config.ParseKeyStrokes(cmd)
+		var inputs []string
+		for _, input := range bindings.GetReverseBindings(strokes) {
+			inputs = append(inputs, config.FormatKeyStrokes(input))
 		}
+		actions = append(actions, fmt.Sprintf("  %-6s  %-40s  %s",
+			strings.Join(inputs, ", "), name, cmd))
 	}
 
 	spec := []ui.GridSpec{
