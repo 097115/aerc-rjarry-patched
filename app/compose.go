@@ -1641,14 +1641,6 @@ func newReviewMessage(composer *Composer, err error) *reviewMessage {
 	}
 
 	reviewCmds := []reviewCmd{
-		{":send<enter>", "Send", ""},
-		{":edit<enter>", "Edit", ""},
-		{":attach<space>", "Add attachment", ""},
-		{":detach<space>", "Remove attachment", ""},
-		{":postpone<enter>", "Postpone", ""},
-		{":preview<enter>", "Preview message", ""},
-		{":abort<enter>", "Abort (discard message, no confirmation)", ""},
-		{":choose -o d discard abort -o p postpone postpone<enter>", "Abort or postpone", ""},
 	}
 	knownCommands := len(reviewCmds)
 	var actions []string
@@ -1659,31 +1651,35 @@ func newReviewMessage(composer *Composer, err error) *reviewMessage {
 		for i, rcmd := range reviewCmds {
 			if outputs == rcmd.output {
 				found = true
-				if reviewCmds[i].input == "" {
-					reviewCmds[i].input = inputs
-				} else {
-					reviewCmds[i].input += ", " + inputs
-				}
-				if binding.Annotation != "" {
-					// overwrite default description with
-					// user annotations if present
-					reviewCmds[i].annotation = binding.Annotation
+				if binding.Annotation != "-" {
+					if reviewCmds[i].input == "" {
+						reviewCmds[i].input = inputs
+					} else {
+						reviewCmds[i].input += ", " + inputs
+					}
+					if binding.Annotation != "" {
+						// overwrite default description with
+						// user annotations if present
+						reviewCmds[i].annotation = binding.Annotation
+					}
 				}
 				break
 			}
 		}
 		if !found {
-			rcmd := reviewCmd{
-				output:     outputs,
-				annotation: binding.Annotation,
-				input:      inputs,
+			if binding.Annotation != "-" {
+				rcmd := reviewCmd{
+					output:     outputs,
+					annotation: binding.Annotation,
+					input:      inputs,
+				}
+				reviewCmds = append(reviewCmds, rcmd)
 			}
-			reviewCmds = append(reviewCmds, rcmd)
 		}
 	}
 	unknownCommands := reviewCmds[knownCommands:]
 	sort.Slice(unknownCommands, func(i, j int) bool {
-		return unknownCommands[i].input < unknownCommands[j].input
+		return unknownCommands[i].annotation < unknownCommands[j].annotation
 	})
 
 	longest := 0
