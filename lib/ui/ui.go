@@ -65,7 +65,7 @@ func Initialize(content DrawableInteractive) error {
 	state.content = content
 	state.vx = vx
 	state.ctx = NewContext(state.vx, onPopover)
-	vx.SetTitle("aerc")
+	vx.SetTitle("")
 
 	Invalidate()
 	if beeper, ok := content.(DrawableInteractiveBeeper); ok {
